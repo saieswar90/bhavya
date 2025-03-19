@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Plot and GIF Generator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>3D Plot and GIF Generator</h1>
+
+        <!-- Upload Image Section -->
+        <div class="section">
+            <h2>Upload an Image</h2>
+            <form id="uploadForm" enctype="multipart/form-data">
+                <input type="file" id="imageFile" name="file" accept="image/*" required>
+                <button type="submit">Upload Image</button>
+            </form>
+            <p id="uploadMessage" class="message"></p>
+        </div>
+
+        <!-- Generate 3D Plot and GIF Buttons -->
+        <div class="section">
+            <h2>Generate Outputs</h2>
+            <button id="generatePlotButton" disabled>Generate 3D Plot</button>
+            <button id="generateGifButton" disabled>Generate 3D GIF</button>
+        </div>
+
+        <!-- Display Results in Two Columns -->
+        <div class="results-container">
+            <div class="result-column">
+                <h3>3D Plot</h3>
+                <img id="plotImage" src="" alt="Generated 3D Plot" style="display: none; max-width: 100%; height: auto;">
+                <p id="plotMessage" class="message"></p>
+            </div>
+            <div class="result-column">
+                <h3>3D Animated GIF</h3>
+                <img id="gifImage" src="" alt="Generated 3D GIF" style="display: none; max-width: 100%; height: auto;">
+                <p id="gifMessage" class="message"></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const BASE_URL = "{{ request.host_url }}";
+        let uploadedFilename = null;
+
+        // Enable buttons only after an image is uploaded
+        function enableButtons() {
+            document.getElementById('generatePlotButton').disabled = false;
+            document.getElementById('generateGifButton').disabled = false;
+        }
+
+        // Upload Image
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            const fileInput = document.getElementById('imageFile');
+            formData.append('file', fileInput.files[0]);
+
+            try {
+                const response = await fetch(`${BASE_URL}upload_image`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    uploadedFilename = result.filename;  // Store the uploaded filename
+                    document.getElementById('uploadMessage').textContent = result.message;
+                    enableButtons();  // Enable buttons after successful upload
+                } else {
+                    document.getElementById('uploadMessage').textContent = result.error || 'Failed to upload image.';
+                }
+            } catch (error) {
+                document.getElementById('uploadMessage').textContent = 'An error occurred while uploading the image.';
+            }
+        });
+
+        // Generate 3D Plot
+        document.getElementById('generatePlotButton').addEventListener('click', async () => {
+            if (!uploadedFilename) {
+                document.getElementById('plotMessage').textContent = 'Please upload an image first.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BASE_URL}generate_plot/${uploadedFilename}`, { method: 'POST' });
+                const result = await response.json();
+                if (response.ok) {
+                    document.getElementById('plotMessage').textContent = result.message;
+                    document.getElementById('plotImage').src = `${BASE_URL}images/${result.plot_path.split('\\').pop()}`;
+                    document.getElementById('plotImage').style.display = 'block';
+                } else {
+                    document.getElementById('plotMessage').textContent = result.error || 'Failed to generate plot.';
+                }
+            } catch (error) {
+                document.getElementById('plotMessage').textContent = 'An error occurred while generating the plot.';
+            }
+        });
+
+        // Generate 3D GIF
+        document.getElementById('generateGifButton').addEventListener('click', async () => {
+            if (!uploadedFilename) {
+                document.getElementById('gifMessage').textContent = 'Please upload an image first.';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${BASE_URL}generate_gif/${uploadedFilename}`, { method: 'POST' });
+                const result = await response.json();
+                if (response.ok) {
+                    document.getElementById('gifMessage').textContent = result.message;
+                    document.getElementById('gifImage').src = `${BASE_URL}images/${result.gif_path.split('\\').pop()}`;
+                    document.getElementById('gifImage').style.display = 'block';
+                } else {
+                    document.getElementById('gifMessage').textContent = result.error || 'Failed to generate GIF.';
+                }
+            } catch (error) {
+                document.getElementById('gifMessage').textContent = 'An error occurred while generating the GIF.';
+            }
+        });
+    </script>
+</body>
+</html>
+
